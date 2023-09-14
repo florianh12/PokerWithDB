@@ -1,0 +1,74 @@
+# to run: docker compose up -d
+# to stop: docker compose down
+version: '3.7'
+
+services:
+  db:
+    image: mysql
+    container_name: sql_db
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+      MYSQL_DATABASE: ${DATABASE_NAME}
+    expose:
+      - "3306"
+    volumes:
+      - db_poker:/var/lib/mysql
+      - ./init:/docker-entrypoint-initdb.d
+    networks:
+      - sql_server
+    restart: always
+
+
+  backend:
+    build: ./backend
+    environment:
+      FLASK_APP: server.py
+      FLASK_ENV: development
+      MYSQL_HOST: db
+      MYSQL_PORT: 3306
+      MYSQL_USER: ${MYSQL_ROOT_USER}
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DB: ${DATABASE_NAME}
+    volumes:
+      - .:/app
+    expose:
+      - "5000"
+    depends_on:
+      - db
+    links:
+      - db
+    networks:
+      - backend_server
+      - sql_server
+    restart: always
+
+
+  frontend:
+    build: ./frontend
+    volumes:
+      - static_files:/app/build
+  
+
+  nginx:
+    build: 
+      context: ./nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - backend_server
+    volumes:
+      - static_files:/usr/share/nginx/html
+    restart: always
+
+
+volumes:
+  db_poker: 
+  static_files:
+
+networks:
+  backend_server:
+  sql_server:

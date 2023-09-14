@@ -1,0 +1,8 @@
+flask
+flask_mysqldb
+flask_login
+debugpy
+pymongo
+bidict
+faker
+bcrypt
