@@ -29,6 +29,9 @@ def populate_sql(sqlDataBase: SqlDataBase):
         if i == 0:
             usernames.append(dev_player)
             player = Player(dev_player,dev_pwd,None)
+        elif i == 1:
+            usernames.append(dev_player+"2")
+            player = Player(dev_player+"2",dev_pwd,None)
         else:
             usernames.append(user)
             player = Player(user,fake.password(),None) 

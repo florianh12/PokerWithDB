@@ -10,18 +10,13 @@ import time
 
 
 class SqlDataBase(DataBase):
-
+    waittime = .05
+    timeout = 60
+    
     def __init__(self, app) -> None:
-        again = True
-        while again:
-            try:
-                self.mysql = MySQL(app)
-                self.mysqlDateFormat = "%Y-%m-%d"
-                if self.mysql is not None:
-                    again = False
-            except Exception as e:
-                pass
-
+        self.mysql = MySQL(app)
+        self.mysqlDateFormat = "%Y-%m-%d"
+                
     def create_player(self, player: Player) -> None:
         
         cur = self.mysql.connection.cursor()
@@ -60,14 +55,17 @@ class SqlDataBase(DataBase):
         
         self.mysql.connection.commit()
 
-    def get_games(self, player:Player) -> List[Game]:
+    def get_games(self, username:str) -> List[Game]:
         game_list = list()
         cur = self.mysql.connection.cursor()
         
-        cur.execute(''' SELECT game_id, table_0, table_1, table_2, table_3, table_4 FROM game NATURAL JOIN participates WHERE player_username = %s ''',(player.user_name,))
+        cur.execute(''' SELECT game_id, table_0, table_1, table_2, table_3, table_4 FROM game NATURAL JOIN participates WHERE player_username = %s ''',(username,))
         results = cur.fetchall()
         for entry in results:
-            game = Game(*entry)
+            cards:List[Card] = list()
+            for card in entry[1:]:
+                cards.append(Card(card))
+            game = Game(entry[0],cards)
             game_list.append(game)
         return game_list
 
@@ -75,10 +73,13 @@ class SqlDataBase(DataBase):
         player_list = list()
         cur = self.mysql.connection.cursor()
         
-        cur.execute(''' SELECT username, password, hand_0, hand_1 FROM player NATURAL JOIN participates WHERE game_id = %s ''',(game._id,))
+        cur.execute(''' SELECT p.username, p.password, pa.hand_0, pa.hand_1 FROM player p INNER JOIN participates pa ON username = player_username WHERE game_id = %s ''',(game._id,))
         results = cur.fetchall()
         for entry in results:
-            player = Player(entry[0],entry[1],entry[2:])
+            cards:List[Card] = list()
+            for card in entry[2:]:
+                cards.append(Card(card))
+            player = Player(entry[0],entry[1],tuple(cards))
             player_list.append(player)
         return player_list
 

@@ -13,7 +13,7 @@ class DataBase(ABC):
         pass
 
     @abstractmethod
-    def get_games(self, player:Player) -> List[Game]:
+    def get_games(self, username:str) -> List[Game]:
         pass
 
     @abstractmethod
