@@ -1,4 +1,6 @@
-from flask_mysqldb import MySQL
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy.orm import relationship
 from typing import List, Tuple
 
 from .DataBase import DataBase
@@ -14,9 +16,42 @@ class SqlDataBase(DataBase):
     timeout = 60
     
     def __init__(self, app) -> None:
-        self.mysql = MySQL(app)
+        self.mysqldb = SQLAlchemy(app)
         self.mysqlDateFormat = "%Y-%m-%d"
-                
+    
+        class Game(self.mysqldb):
+            __tablename__ = 'game'
+            
+            game_id = Column(Integer, primary_key=True, autoincrement=True)
+            table_0 = Column(Integer,nullable=False)
+            table_1 = Column(Integer,nullable=False)
+            table_2 = Column(Integer,nullable=False)
+            table_3 = Column(Integer,nullable=False)
+            table_4 = Column(Integer,nullable=False)
+            
+            participants = relationship('Participates', back_populates='participation')
+        
+        class Player(self.mysqldb):
+            __tablename__ = 'player'
+            
+            username = Column(String(40),primary_key=True)
+            password = Column(String(100),nullable=False)
+            
+            participation = relationship('Participates', back_populates='participants')
+            
+        class Participates(self.mysqldb):
+            __tablename__ = 'participates'
+            
+            game_id = Column(Integer,ForeignKey('game.game_id'))
+            player_username = Column(String(40), ForeignKey('player.username'))
+            hand_0 = Column(Integer,nullable=False)
+            hand_1 = Column(Integer,nullable=False)
+            
+            participation = relationship('Game', back_populates='participants')
+            participants = relationship('Player', back_populates='participation')
+            
+    
+    # need to adapt functions below to SQLAlchemy
     def create_player(self, player: Player) -> None:
         
         cur = self.mysql.connection.cursor()

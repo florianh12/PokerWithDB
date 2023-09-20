@@ -10,37 +10,16 @@ import subprocess
 
 from database import *
 
-def ping_container(container_name_or_id, count=4):
-    try:
-        # Run the ping command to ping the container
-        result = subprocess.run(
-            ["ping", "-c", str(count), container_name_or_id],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
-
-        return result.returncode == 0
-
-    except Exception as e:
-        return f"Error while pinging container {container_name_or_id}: {str(e)}"
 app = Flask(__name__)
-app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST')
-app.config['MYSQL_PORT'] = int(os.getenv('MYSQL_PORT'))
-app.config['MYSQL_USER'] = os.getenv('MYSQL_USER')
-app.config['MYSQL_DB'] = os.getenv('MYSQL_DB')
-app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
 app.secret_key = os.urandom(24)
 
 lock = False
 login_manager = LoginManager()
 login_manager.init_app(app)
 
-while ping_container(os.getenv('MYSQL_HOST')) == False:
-    time.sleep(.05)
-sqlDataBase = SqlDataBase(app)
 
-dataBase: DataBase = sqlDataBase
+dataBase = SqlDataBase(app)
 
 class User(UserMixin):
     def __init__(self, id):
