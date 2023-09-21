@@ -1,6 +1,9 @@
 #jsonify and json_util only used to visualize mongodb-data on the website for now
 from flask import Flask, jsonify, make_response, request
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import Column, Integer, String, ForeignKey, Enum
+from sqlalchemy.orm import relationship
 from models import *
 import threading
 import time
@@ -18,8 +21,9 @@ lock = False
 login_manager = LoginManager()
 login_manager.init_app(app)
 
+db = SQLAlchemy(app)
 
-dataBase = SqlDataBase(app)
+dataBase = SqlDataBase(db)
 
 class User(UserMixin):
     def __init__(self, id):
@@ -51,8 +55,7 @@ def populate_db():
     if lock:
         return make_response(jsonify({"message": "Database is already populating"}), 201)
     lock = True
-    populate_sql(sqlDataBase)
-    dataBase = sqlDataBase
+    populate_sql(dataBase)
     lock = False
     return make_response(jsonify({"message": "Successful populated database"}), 201)
 

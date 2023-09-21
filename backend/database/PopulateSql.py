@@ -1,13 +1,7 @@
 from typing import List
 
 from .SqlDataBase import SqlDataBase
-from models import *
-
 from faker import Faker
-from datetime import datetime, timedelta
-import random
-import csv
-
 
 dev_player = "TestPlayer"
 dev_pwd = "1234"
@@ -18,28 +12,27 @@ def populate_sql(sqlDataBase: SqlDataBase):
     sqlDataBase.clear()
     
     usernames: List[str] = []
-    players: List[Player] = []
 
         
     for i in range(0,4):
            
-        player = Player("","",None)
         user = fake.user_name()
+        pwd = fake.password()
         
         if i == 0:
             usernames.append(dev_player)
-            player = Player(dev_player,dev_pwd,None)
+            user = dev_player
+            pwd = dev_pwd
         elif i == 1:
             usernames.append(dev_player+"2")
-            player = Player(dev_player+"2",dev_pwd,None)
+            user = dev_player+"2"
+            pwd = dev_pwd
         else:
-            usernames.append(user)
-            player = Player(user,fake.password(),None) 
+            usernames.append(user) 
         
-        sqlDataBase.create_player(player)
-        players.append(player)
+        sqlDataBase.create_player(user,pwd)
     
-    sqlDataBase.create_game(players)
+    sqlDataBase.create_game(usernames)
             
        
             

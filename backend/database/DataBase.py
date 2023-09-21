@@ -1,15 +1,15 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple
-from models import *
+from typing import List
+from models import Player, Game
 
 class DataBase(ABC):
 
     @abstractmethod
-    def create_player(self, player: Player) -> None:
+    def create_player(self, username:str, password:str) -> None:
         pass
 
     @abstractmethod
-    def create_game(self, players: Player) -> None:
+    def create_game(self, players: List[str]) -> None:
         pass
 
     @abstractmethod
