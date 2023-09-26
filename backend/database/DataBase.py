@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List
-from models import Player, Game
+from models import Player, Game, Participates
 
 class DataBase(ABC):
 
@@ -17,7 +17,7 @@ class DataBase(ABC):
         pass
 
     @abstractmethod
-    def get_players(self, game:Game) -> List[Player]:
+    def get_players(self, game:Game) -> List[Participates]:
         pass
     
     @abstractmethod

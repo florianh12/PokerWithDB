@@ -1,7 +1,7 @@
 #jsonify and json_util only used to visualize mongodb-data on the website for now
 from flask import Flask, jsonify, make_response, request
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from flask_sqlalchemy import SQLAlchemy
+
 from sqlalchemy import Column, Integer, String, ForeignKey, Enum
 from sqlalchemy.orm import relationship
 from models import *
@@ -20,10 +20,9 @@ app.secret_key = os.urandom(24)
 lock = False
 login_manager = LoginManager()
 login_manager.init_app(app)
+    
 
-db = SQLAlchemy(app)
-
-dataBase = SqlDataBase(db)
+dataBase = SqlDataBase(app)
 
 class User(UserMixin):
     def __init__(self, id):
@@ -81,14 +80,17 @@ def translate_test():
 def show_profile():
     retstr:str = current_user.id + "<br>"
     for game in dataBase.get_games(current_user.id):
-        retstr += str(game._id)
-        for card in game.table:
-            retstr += " " + CardToClearGerman.translate(card)
+        retstr += str(game.game_id)
+        retstr += " " + CardToClearGerman.translate(game.table_0)
+        retstr += " " + CardToClearGerman.translate(game.table_1)
+        retstr += " " + CardToClearGerman.translate(game.table_2)
+        retstr += " " + CardToClearGerman.translate(game.table_3)
+        retstr += " " + CardToClearGerman.translate(game.table_4)
         retstr += "<br> My Hand: "
         for player in dataBase.get_players(game):
-            if player.user_name == str(current_user.id):
-                for card in player.hand:
-                    retstr += " " + CardToClearGerman.translate(card)
+            if player.player_username == str(current_user.id):
+                    retstr += " " + CardToClearGerman.translate(player.hand_0)
+                    retstr += " " + CardToClearGerman.translate(player.hand_1)
             else:
                 continue
     return retstr
