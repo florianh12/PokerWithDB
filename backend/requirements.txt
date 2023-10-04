@@ -1,8 +1,9 @@
 flask
+flask_login
+werkzeug==2.3
 flask_sqlalchemy
 sqlalchemy_utils
 mysqlclient
-flask_login
 debugpy
 pymongo
 bidict
