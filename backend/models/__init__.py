@@ -4,3 +4,4 @@ from .CardToClear import CardToClear
 from .CardToClearGerman import CardToClearGerman
 from .key import Key
 from .DataSqlAlchemy import Player,Game,Participates,db
+from .State import State

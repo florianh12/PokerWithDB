@@ -2,17 +2,23 @@ SET GLOBAL sql_mode = '';
 
 CREATE TABLE game (
     game_id INTEGER AUTO_INCREMENT,
-    table_0 Integer NOT NULL,
-    table_1 Integer NOT NULL,
-    table_2 Integer NOT NULL,
-    table_3 Integer NOT NULL,
-    table_4 Integer NOT NULL,
+    name VARCHAR(40) NOT NULL DEFAULT '',
+    table_0 INTEGER NOT NULL,
+    table_1 INTEGER NOT NULL,
+    table_2 INTEGER NOT NULL,
+    table_3 INTEGER NOT NULL,
+    table_4 INTEGER NOT NULL,
+    current_bet DOUBLE NOT NULL DEFAULT 1.0,
+    pot DOUBLE NOT NULL DEFAULT 0.0,
+    turn INTEGER NOT NULL DEFAULT -1,
+    active BOOLEAN NOT NULL DEFAULT true,
     PRIMARY KEY (game_id)
 );
 
 CREATE TABLE player (
     username VARCHAR(40) NOT NULL,
     password VARCHAR(100) NOT NULL,
+    stash DOUBLE NOT NULL DEFAULT 10.0,
     PRIMARY KEY (username)
 );
 
@@ -22,6 +28,7 @@ CREATE TABLE participates (
     player_username VARCHAR(40),
     hand_0 INTEGER NOT NULL,
     hand_1 INTEGER NOT NULL,
+    turn_state ENUM('RAISE','BET','FOLD','FALSE') NOT NULL DEFAULT 'FALSE',
     PRIMARY KEY (game_id, player_username),
     FOREIGN KEY (game_id) REFERENCES game(game_id) ON DELETE CASCADE,
     FOREIGN KEY (player_username) REFERENCES player(username) ON DELETE CASCADE
