@@ -58,9 +58,6 @@ def populate_db():
     lock = False
     return make_response(jsonify({"message": "Successful populated database"}), 201)
 
-
-
-
 @app.route("/api/translate_test", methods=["GET"])
 @login_required
 def translate_test():
@@ -75,12 +72,27 @@ def translate_test():
             
     return retstr
 
+
+
+
+@app.route("/api/new_game",methods=["GET"])
+@login_required
+def new_game():
+    dataBase.create_game(players=[str(current_user.id)], name=request.args.get('name',''))
+    return "Game successfully created"
+
+@app.route("/api/join_game",methods=["GET"])
+@login_required
+def join_game():
+    dataBase.join_game(player=str(current_user.id), id=request.args.get('game_id'),name=request.args.get('name'))
+    return "Joined successfully"
+
 @app.route("/api/profile",methods=["GET"])
 @login_required
 def show_profile():
-    retstr:str = current_user.id + "<br>"
+    retstr:str = current_user.id 
     for game in dataBase.get_games(current_user.id):
-        retstr += str(game.game_id)
+        retstr += "<br>" + str(game.game_id) + " " + str(game.name)
         retstr += " " + CardToClearGerman.translate(game.table_0)
         retstr += " " + CardToClearGerman.translate(game.table_1)
         retstr += " " + CardToClearGerman.translate(game.table_2)

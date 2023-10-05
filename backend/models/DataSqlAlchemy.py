@@ -41,7 +41,7 @@ class Participates(db.Model):
     player_username = Column(String(40), ForeignKey('player.username'), primary_key=True)
     hand_0 = Column(ChoiceType(Card, impl=db.Integer()),nullable=False)
     hand_1 = Column(ChoiceType(Card, impl=db.Integer()),nullable=False)
-    turn_state = Column(Enum(State),default=State.false,nullable=False)
+    turn_state = Column(ChoiceType(State, impl=str()),default=State.false,nullable=False)
     
     participation = relationship('Game', back_populates='participants')
     participants = relationship('Player', back_populates='participation')

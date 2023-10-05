@@ -22,10 +22,10 @@ class SqlDataBase(DataBase):
         
         self.mysqldb.session.commit()
         
-    def create_game(self, players: List[str]) -> None:
+    def create_game(self, players: List[str], name: str = '') -> None:
         cards = list(Card)
         random.shuffle(cards)
-        to_insert_game = Game(table_0=cards.pop(),table_1=cards.pop(),table_2=cards.pop(),table_3=cards.pop(),table_4=cards.pop())
+        to_insert_game = Game(name=name,table_0=cards.pop(),table_1=cards.pop(),table_2=cards.pop(),table_3=cards.pop(),table_4=cards.pop())
         
         self.mysqldb.session.add(to_insert_game)
         self.mysqldb.session.commit()
@@ -33,6 +33,50 @@ class SqlDataBase(DataBase):
             self.mysqldb.session.add(Participates(game_id=to_insert_game.game_id,player_username=player,hand_0=cards.pop(),hand_1=cards.pop()))
         
         self.mysqldb.session.commit()
+        
+    def join_game(self, player:str, id = None, name = None) -> None:
+        cards = list(Card)
+        join = None
+        if id is None and name is None:
+            raise Exception("Neither id nor name given")
+        elif id is None:
+            name = str(name)
+            if len(Game.query.filter(Participates.participation.has(name=name)).all()) is None:
+                raise Exception("Game does not exist")
+            game = Game.query.filter_by(name=name).first()
+            cards.remove(game.table_0)
+            cards.remove(game.table_1)
+            cards.remove(game.table_2)
+            cards.remove(game.table_3)
+            cards.remove(game.table_4)
+            participants = Participates.query.filter(Participates.participation.has(name=name)).all()
+            for participant in participants:
+                cards.remove(participant.hand_0)
+                cards.remove(participant.hand_1)
+                if participant.player_username == player:
+                    raise Exception("Player already joined")
+            join = Participates(game_id=game.game_id,player_username=player,hand_0=cards.pop(),hand_1=cards.pop())
+        else:
+            id = int(id)
+            if Game.query.filter_by(game_id=id).all() is None:
+                raise Exception("Game does not exist")
+            game = Game.query.filter_by(game_id=id).first()
+            cards.remove(game.table_0)
+            cards.remove(game.table_1)
+            cards.remove(game.table_2)
+            cards.remove(game.table_3)
+            cards.remove(game.table_4)
+            participants = Participates.query.filter_by(game_id=id).all()
+            for participant in participants:
+                cards.remove(participant.hand_0)
+                cards.remove(participant.hand_1)
+                if participant.player_username == player:
+                    raise Exception("Player already joined")
+            join = Participates(game_id=id,player_username=player,hand_0=cards.pop(),hand_1=cards.pop())
+        self.mysqldb.session.add(join)
+        self.mysqldb.session.commit()                                
+                
+
 
     def get_games(self, username:str) -> List[Game]:
         return self.mysqldb.session.query(Game).join(Participates, Game.game_id == Participates.game_id).filter_by(player_username=username).all()

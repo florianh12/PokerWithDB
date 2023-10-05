@@ -9,7 +9,11 @@ class DataBase(ABC):
         pass
 
     @abstractmethod
-    def create_game(self, players: List[str]) -> None:
+    def create_game(self, players: List[str], name: str = '') -> None:
+        pass
+    
+    @abstractmethod
+    def join_game(self, player:str, id = None, name = None) -> None:
         pass
 
     @abstractmethod
