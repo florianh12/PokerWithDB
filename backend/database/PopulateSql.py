@@ -32,7 +32,7 @@ def populate_sql(sqlDataBase: SqlDataBase):
         
         sqlDataBase.create_player(user,pwd)
     
-    sqlDataBase.create_game(usernames)
+    sqlDataBase.create_game(usernames, "TestGame")
             
        
             

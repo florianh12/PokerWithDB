@@ -8,22 +8,21 @@ from .State import State
 
 db = SQLAlchemy()
 
-class Game(db.Model):
-    __tablename__ = 'game'
+class PokerGame(db.Model):
+    __tablename__ = 'PokerGame'
     
-    game_id = Column(Integer, primary_key=True, autoincrement=True)
+    gameID = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String,default='',nullable=False)
-    table_0 = Column(ChoiceType(Card, impl=db.Integer()),nullable=False)
-    table_1 = Column(ChoiceType(Card, impl=db.Integer()),nullable=False)
-    table_2 = Column(ChoiceType(Card, impl=db.Integer()),nullable=False)
-    table_3 = Column(ChoiceType(Card, impl=db.Integer()),nullable=False)
-    table_4 = Column(ChoiceType(Card, impl=db.Integer()),nullable=False)
-    current_bet = Column(Double,default=1.0,nullable=False)
+    table1 = Column(ChoiceType(Card, impl=db.Integer()),nullable=False)
+    table2 = Column(ChoiceType(Card, impl=db.Integer()),nullable=False)
+    table3 = Column(ChoiceType(Card, impl=db.Integer()),nullable=False)
+    table4 = Column(ChoiceType(Card, impl=db.Integer()),nullable=False)
+    table5 = Column(ChoiceType(Card, impl=db.Integer()),nullable=False)
+    stake = Column(Double,default=1.0,nullable=False)
     pot = Column(Double,default=0.0,nullable=False)
-    turn = Column(Integer,default=-1,nullable=False)
-    active = Column(Boolean,default=True,nullable=False)
+    round = Column(Integer,default=-1,nullable=False)
     
-    participants = relationship('Participates', back_populates='participation')
+    participants = relationship('Plays', back_populates='participation')
 
 class Player(db.Model):
     __tablename__ = 'player'
@@ -32,16 +31,16 @@ class Player(db.Model):
     password = Column(String(100),nullable=False)
     stash = Column(Double,default=10.0,nullable=False)
     
-    participation = relationship('Participates', back_populates='participants')
+    participation = relationship('Plays', back_populates='participants')
     
-class Participates(db.Model):
-    __tablename__ = 'participates'
+class Plays(db.Model):
+    __tablename__ = 'plays'
     
-    game_id = Column(Integer,ForeignKey('game.game_id'), primary_key=True)
+    gameID = Column(Integer,ForeignKey('PokerGame.gameID'), primary_key=True)
     player_username = Column(String(40), ForeignKey('player.username'), primary_key=True)
-    hand_0 = Column(ChoiceType(Card, impl=db.Integer()),nullable=False)
-    hand_1 = Column(ChoiceType(Card, impl=db.Integer()),nullable=False)
-    turn_state = Column(ChoiceType(State, impl=str()),default=State.false,nullable=False)
+    hand1 = Column(ChoiceType(Card, impl=db.Integer()),nullable=False)
+    hand2 = Column(ChoiceType(Card, impl=db.Integer()),nullable=False)
+    status = Column(ChoiceType(State, impl=str()),default=State.unkown,nullable=False)
     
-    participation = relationship('Game', back_populates='participants')
+    participation = relationship('PokerGame', back_populates='participants')
     participants = relationship('Player', back_populates='participation')

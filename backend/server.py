@@ -79,32 +79,57 @@ def translate_test():
 @login_required
 def new_game():
     dataBase.create_game(players=[str(current_user.id)], name=request.args.get('name',''))
-    return "Game successfully created"
+    return "PokerGame successfully created"
 
 @app.route("/api/join_game",methods=["GET"])
 @login_required
 def join_game():
-    dataBase.join_game(player=str(current_user.id), id=request.args.get('game_id'),name=request.args.get('name'))
+    dataBase.join_game(player=str(current_user.id), id=request.args.get('gameID'),name=request.args.get('name'))
     return "Joined successfully"
+
+@app.route("/api/games/<int:gameID>/start",methods=["GET"])
+@login_required
+def start_game(gameID):
+    dataBase.start_game(player=str(current_user.id), id=gameID)
+    return "The game started successfully"
 
 @app.route("/api/profile",methods=["GET"])
 @login_required
 def show_profile():
     retstr:str = current_user.id 
+
     for game in dataBase.get_games(current_user.id):
-        retstr += "<br>" + str(game.game_id) + " " + str(game.name)
-        retstr += " " + CardToClearGerman.translate(game.table_0)
-        retstr += " " + CardToClearGerman.translate(game.table_1)
-        retstr += " " + CardToClearGerman.translate(game.table_2)
-        retstr += " " + CardToClearGerman.translate(game.table_3)
-        retstr += " " + CardToClearGerman.translate(game.table_4)
-        retstr += "<br> My Hand: "
-        for player in dataBase.get_players(game):
-            if player.player_username == str(current_user.id):
-                    retstr += " " + CardToClearGerman.translate(player.hand_0)
-                    retstr += " " + CardToClearGerman.translate(player.hand_1)
+        
+        retstr += "<br>" + str(game.gameID) + " " + str(game.name)
+        
+        if game.round < 0:
+            if game.round == -1:  
+                retstr += " Status: NOT STARTED <br>"
             else:
-                continue
+                retstr += " Status: OVER <br>"
+        else:
+            retstr += " Status: ONGOING <br>"
+
+        if game.round > 0:
+            retstr += " " + CardToClearGerman.translate(game.table1)
+            retstr += "&nbsp&nbsp&nbsp&nbsp" + CardToClearGerman.translate(game.table2)
+            retstr += "&nbsp&nbsp&nbsp&nbsp" + CardToClearGerman.translate(game.table3)
+        if game.round > 1:
+            retstr += "&nbsp&nbsp&nbsp&nbsp" + CardToClearGerman.translate(game.table4)
+        if game.round > 2:
+            retstr += "&nbsp&nbsp&nbsp&nbsp" + CardToClearGerman.translate(game.table5)
+        retstr += "<br> Round: " + str(game.round)
+
+        if not game.round < 0:
+            retstr += "<br> My Hand: "
+            for player in dataBase.get_players(game):
+                if player.player_username == str(current_user.id):
+                        retstr += " " + CardToClearGerman.translate(player.hand1)
+                        retstr += "&nbsp&nbsp&nbsp&nbsp" + CardToClearGerman.translate(player.hand2)
+                        retstr += "<br> Player-Status: " + player.status.value
+                else:
+                    continue
+
     return retstr
 
 if __name__ == "__main__":

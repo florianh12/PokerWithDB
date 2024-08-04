@@ -5,4 +5,4 @@ class State(Enum):
     raise_ = 'RAISE'
     bet = 'BET'
     fold = 'FOLD'
-    false = 'FALSE'
+    unkown = 'UNKNOWN'
