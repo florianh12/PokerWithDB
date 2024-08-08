@@ -2,7 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from typing import List
 
 from .DataBase import DataBase
-from models import Card, Player, PokerGame, Plays,db
+from models import Card, Player, PokerGame, Plays,db, State
 import random
 import bcrypt
 
@@ -44,12 +44,13 @@ class SqlDataBase(DataBase):
             game = PokerGame.query.filter_by(gameID=id).first()
             
             # return without doing anything if game has already started or ended
-            if not game.round < 0:
-                return
+            
 
             participants = Plays.query.filter_by(gameID=id).all()
             usernames = [participant.player_username for participant in participants]
             if player in usernames:
+                if not game.round == -1:
+                    return
                 game.round = 0
             else:
                 raise Exception("Player didn't join the game")
@@ -67,6 +68,8 @@ class SqlDataBase(DataBase):
             if len(PokerGame.query.filter(Plays.participation.has(name=name)).all()) is None:
                 raise Exception("PokerGame does not exist")
             game = PokerGame.query.filter_by(name=name).first()
+            if game.round != -1:
+                raise Exception("Game started already")
             cards.remove(game.table1)
             cards.remove(game.table2)
             cards.remove(game.table3)
@@ -84,6 +87,8 @@ class SqlDataBase(DataBase):
             if PokerGame.query.filter_by(gameID=id).all() is None:
                 raise Exception("PokerGame does not exist")
             game = PokerGame.query.filter_by(gameID=id).first()
+            if game.round != -1:
+                raise Exception("Game started already")
             cards.remove(game.table1)
             cards.remove(game.table2)
             cards.remove(game.table3)
@@ -103,9 +108,104 @@ class SqlDataBase(DataBase):
 
     def get_games(self, username:str) -> List[PokerGame]:
         return self.mysqldb.session.query(PokerGame).join(Plays, PokerGame.gameID == Plays.gameID).filter_by(player_username=username).all()
+    
+    def get_game(self, gameID:int) -> PokerGame | None:
+        return PokerGame.query.filter_by(gameID=gameID).first()
 
     def get_players(self,game:PokerGame) -> List[Plays]:
         return Plays.query.filter_by(gameID=game.gameID).all()
+
+    def get_player(self, player:str, gameID:int) -> Plays:
+        return Plays.query.filter_by(player_username=player, gameID=gameID).first()
+
+    def check_action_allowed(self, player:str, gameID:int) -> bool:
+        player_state = Plays.query.filter_by(gameID=gameID,player_username=player).first()
+
+        if player_state is None:
+            raise Exception("Player not part of the game")
+
+        if player_state.status == State.unkown:
+            return True
+        
+        return False
+
+    # returns false if player is force folded
+    def bet(self, player:str, gameID:int) -> bool:
+        game = self.get_game(gameID=gameID)
+        player_game = Plays.query.filter_by(player_username=player, gameID=gameID).first()
+        player_account = Player.query.filter_by(username=player).first()
+
+        if game.stake > player_account.stash:
+            player_game.status = State.fold
+
+            #commit changes
+            self.mysqldb.session.commit()
+            return False
+        paid_amount = (game.stake - player_game.paid_this_round)
+        player_account.stash -= paid_amount
+        player_game.paid_this_round += paid_amount
+        player_game.status = State.bet
+        
+        #commit changes
+        self.mysqldb.session.commit()
+        return True
+
+
+    def do_raise_update(self, player_raise:str, gameID:int) -> None:
+        players = Plays.query.filter_by(gameID=gameID).all()
+
+        for player in players:
+            
+            if player.player_username == player_raise or player.status == State.fold:
+                continue
+
+            player.status = State.unkown
+
+        #commit changes
+        self.mysqldb.session.commit()
+
+    def do_round_update(self, gameID:int) -> None:
+        game = PokerGame.query.filter_by(gameID=gameID).first()
+        players = Plays.query.filter_by(gameID=gameID).all()
+        next_round = True
+        not_folded = 0
+
+        if game.round < 0:
+            raise Exception("Game either hasn't started yet or is already over")
+
+        for player in players:
+            
+            if player.status == State.unkown:
+                next_round = False
+            elif player.status != State.fold:
+                    not_folded += 1
+       
+
+        if next_round:
+            if game.round < 3 and not_folded > 1:
+                
+                for player in players:
+                    
+                    if player.status == State.fold:
+                        continue
+
+                    player.status = State.unkown
+                
+                game.round += 1
+
+            else:
+                #TODO: Implement winning mechanics
+
+
+                # Declare game to be over
+                game.round = -2
+        
+        #commit changes
+        self.mysqldb.session.commit()
+
+
+    def get_player_account(self, player:str) -> Player:
+        return Player.query.filter_by(username=player).first()
 
     def login(self, username:str, pwd:str) -> bool:
         hash :str = Player.query.filter_by(username=username).with_entities(Player.password).first()

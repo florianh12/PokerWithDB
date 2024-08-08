@@ -93,6 +93,94 @@ def start_game(gameID):
     dataBase.start_game(player=str(current_user.id), id=gameID)
     return "The game started successfully"
 
+@app.route("/api/games/<int:gameID>/<action>",methods=["GET"])
+@login_required
+def act_game(gameID,action):
+    #TODO: Fix the fact that nothing changes after executing the function
+    #convert to enum
+    action = State(action.upper())
+    game = dataBase.get_game(gameID=gameID)
+
+    if game is None:
+        return "Game doesn't exist"
+
+    if game.round < 0:
+        return "Game either hasn't started yet or is already over"
+
+    retstr = "Player acted successfully"
+
+    if dataBase.check_action_allowed(player=current_user.id,gameID=gameID):
+        
+        player_game = dataBase.get_player(player=current_user.id,gameID=gameID)
+        player_account = dataBase.get_player_account(player=current_user.id)
+        
+        if action == State.bet:
+            if dataBase.bet(player=current_user.id,gameID=gameID):
+                retstr = "Bet successfully"
+            else:
+                retstr = "Player folded because of low balance"
+            
+
+        elif action == State.raise_:
+            amount = float(request.args.get("amount",""))
+
+            if (game.stake + amount - player_game.paid_this_round) > player_account.stash:
+                return f"Can't raise by {amount} with current stake of {game.stake} and stash of {player_account.stash}, after having already bet {player_game.paid_this_round}"
+
+            game.stake += amount
+            player_account.stash -= (game.stake - player_game.paid_this_round)
+            player_game.paid_this_round += (game.stake - player_game.paid_this_round)
+            player_game.status = State.raise_
+            dataBase.do_raise_update(player_raise=player_game.player_username,gameID=gameID)
+            retstr = "raised successfully"
+        
+        elif action == State.fold:
+            player_game.status = State.fold
+
+
+        dataBase.do_round_update(gameID=gameID)
+
+        return retstr
+    #dataBase.start_game(player=str(current_user.id), id=gameID)
+    return "Player cannot act right now!"
+
+@app.route("/api/games/<int:gameID>/status",methods=["GET"])
+@login_required
+def game_status(gameID):
+    game = dataBase.get_game(gameID=gameID)
+    if game is None:
+        return "Game does not exist"
+    else:
+        retstr:str = f"""Name: {game.name} Status: 
+        {"NOT STARTED" if game.round == -1 else 
+        "OVER" if game.round < 0 else "ONGOING"}<br>"""
+        
+        players = dataBase.get_players(game)
+        usernames = [player.player_username for player in players]
+        
+        if current_user.id in usernames:
+            if game.round > 0:
+                retstr += "<br>Table:<br>&nbsp&nbsp" + CardToClearGerman.translate(game.table1)
+                retstr += "&nbsp&nbsp&nbsp&nbsp" + CardToClearGerman.translate(game.table2)
+                retstr += "&nbsp&nbsp&nbsp&nbsp" + CardToClearGerman.translate(game.table3)
+            if game.round > 1:
+                retstr += "&nbsp&nbsp&nbsp&nbsp" + CardToClearGerman.translate(game.table4)
+            if game.round > 2:
+                retstr += "&nbsp&nbsp&nbsp&nbsp" + CardToClearGerman.translate(game.table5)
+            retstr += "<br><br> Round: " + str(game.round)
+
+            if not game.round < 0:
+                retstr += "<br><br> My Hand: "
+                for player in dataBase.get_players(game):
+                    if player.player_username == str(current_user.id):
+                            retstr += " " + CardToClearGerman.translate(player.hand1)
+                            retstr += "&nbsp&nbsp&nbsp&nbsp" + CardToClearGerman.translate(player.hand2)
+                            retstr += "<br><br> Player-Status: " + player.status.value + "<br>"
+                    else:
+                        continue
+
+        return retstr
+
 @app.route("/api/profile",methods=["GET"])
 @login_required
 def show_profile():
@@ -126,7 +214,7 @@ def show_profile():
                 if player.player_username == str(current_user.id):
                         retstr += " " + CardToClearGerman.translate(player.hand1)
                         retstr += "&nbsp&nbsp&nbsp&nbsp" + CardToClearGerman.translate(player.hand2)
-                        retstr += "<br> Player-Status: " + player.status.value
+                        retstr += "<br> Player-Status: " + player.status.value + "<br>"
                 else:
                     continue
 

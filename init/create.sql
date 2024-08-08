@@ -28,6 +28,7 @@ CREATE TABLE plays (
     hand1 INTEGER NOT NULL,
     hand2 INTEGER NOT NULL,
     status ENUM('RAISE','BET','FOLD','UNKNOWN') NOT NULL DEFAULT 'UNKNOWN',
+    paid_this_round DOUBLE NOT NULL DEFAULT 0.0,
     PRIMARY KEY (gameID, player_username),
     FOREIGN KEY (gameID) REFERENCES PokerGame(gameID) ON DELETE CASCADE,
     FOREIGN KEY (player_username) REFERENCES player(username) ON DELETE CASCADE

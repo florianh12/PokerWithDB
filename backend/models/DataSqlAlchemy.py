@@ -41,6 +41,7 @@ class Plays(db.Model):
     hand1 = Column(ChoiceType(Card, impl=db.Integer()),nullable=False)
     hand2 = Column(ChoiceType(Card, impl=db.Integer()),nullable=False)
     status = Column(ChoiceType(State, impl=str()),default=State.unkown,nullable=False)
+    paid_this_round = Column(Double,default=0.0,nullable=False)
     
     participation = relationship('PokerGame', back_populates='participants')
     participants = relationship('Player', back_populates='participation')
