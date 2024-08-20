@@ -134,34 +134,70 @@ class SqlDataBase(DataBase):
         game = self.get_game(gameID=gameID)
         player_game = Plays.query.filter_by(player_username=player, gameID=gameID).first()
         player_account = Player.query.filter_by(username=player).first()
+        amount_left = (game.stake - player_game.paid_this_round)
 
-        if game.stake > player_account.stash:
+        # force fold if player can't afford to pay up
+        if player_account.stash < amount_left:
             player_game.status = State.fold
 
-            #commit changes
+            #commit changes to database
             self.mysqldb.session.commit()
             return False
-        paid_amount = (game.stake - player_game.paid_this_round)
-        player_account.stash -= paid_amount
-        player_game.paid_this_round += paid_amount
+        
+        player_account.stash -= amount_left
+        player_game.paid_this_round += amount_left
+        game.pot += amount_left
         player_game.status = State.bet
         
-        #commit changes
+        #commit changes to database
         self.mysqldb.session.commit()
         return True
 
 
-    def do_raise_update(self, player_raise:str, gameID:int) -> None:
-        players = Plays.query.filter_by(gameID=gameID).all()
+    def fold(self, player:str, gameID:int) -> None:
+        player_game = Plays.query.filter_by(player_username=player, gameID=gameID).first()
 
-        for player in players:
+        player_game.status = State.fold
+
+        #commit changes to database
+        self.mysqldb.session.commit()
+
+    def do_raise(self, player:str, gameID:int,amount:float) -> None:
+        game = PokerGame.query.filter_by(gameID=gameID).first()
+        players = Plays.query.filter_by(gameID=gameID).all()
+        # refers to player performing the action
+        player_game = Plays.query.filter_by(player_username=player, gameID=gameID).first()
+        player_account = Player.query.filter_by(username=player).first()
+
+        # Check if amount bigger than 0
+        if(amount <= 0.0):
+            raise Exception("Amount too small")
+
+        # Check if player can even pay the new raised stake and abort if not
+        if (game.stake + amount - player_game.paid_this_round) > player_account.stash:
+            raise Exception(f"Can't raise by {amount} with current stake of {game.stake} and stash of {player_account.stash}, after having already bet {player_game.paid_this_round}")
+
+        # adjust stake
+        game.stake += amount
+
+        # perform transaction for remaining amount
+        additional_payment = (game.stake - player_game.paid_this_round)
+        player_account.stash -= additional_payment
+        player_game.paid_this_round += additional_payment
+        
+        # set status to raise and deal with other players statuses
+        player_game.status = State.raise_
+
+        for other_player in players:
             
-            if player.player_username == player_raise or player.status == State.fold:
+            # if we look at the player performing the action 
+            # or at a player who folded already, we skip the status change
+            if other_player.player_username == player or other_player.status == State.fold:
                 continue
 
-            player.status = State.unkown
+            other_player.status = State.unkown
 
-        #commit changes
+        #commit changes to database
         self.mysqldb.session.commit()
 
     def do_round_update(self, gameID:int) -> None:
@@ -186,6 +222,8 @@ class SqlDataBase(DataBase):
                 
                 for player in players:
                     
+                    player.paid_this_round = 0
+
                     if player.status == State.fold:
                         continue
 
@@ -200,7 +238,7 @@ class SqlDataBase(DataBase):
                 # Declare game to be over
                 game.round = -2
         
-        #commit changes
+        #commit changes to database
         self.mysqldb.session.commit()
 
 

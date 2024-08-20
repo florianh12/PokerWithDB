@@ -111,9 +111,6 @@ def act_game(gameID,action):
 
     if dataBase.check_action_allowed(player=current_user.id,gameID=gameID):
         
-        player_game = dataBase.get_player(player=current_user.id,gameID=gameID)
-        player_account = dataBase.get_player_account(player=current_user.id)
-        
         if action == State.bet:
             if dataBase.bet(player=current_user.id,gameID=gameID):
                 retstr = "Bet successfully"
@@ -122,20 +119,14 @@ def act_game(gameID,action):
             
 
         elif action == State.raise_:
-            amount = float(request.args.get("amount",""))
+            amount = float(request.args.get("amount",0.0))
 
-            if (game.stake + amount - player_game.paid_this_round) > player_account.stash:
-                return f"Can't raise by {amount} with current stake of {game.stake} and stash of {player_account.stash}, after having already bet {player_game.paid_this_round}"
-
-            game.stake += amount
-            player_account.stash -= (game.stake - player_game.paid_this_round)
-            player_game.paid_this_round += (game.stake - player_game.paid_this_round)
-            player_game.status = State.raise_
-            dataBase.do_raise_update(player_raise=player_game.player_username,gameID=gameID)
+            dataBase.do_raise(current_user.id,gameID=gameID,amount=amount)
             retstr = "raised successfully"
         
         elif action == State.fold:
-            player_game.status = State.fold
+            dataBase.fold(player=current_user.id,gameID=gameID)
+            retstr = "Player folded successfully"
 
 
         dataBase.do_round_update(gameID=gameID)
@@ -176,6 +167,7 @@ def game_status(gameID):
                             retstr += " " + CardToClearGerman.translate(player.hand1)
                             retstr += "&nbsp&nbsp&nbsp&nbsp" + CardToClearGerman.translate(player.hand2)
                             retstr += "<br><br> Player-Status: " + player.status.value + "<br>"
+                            retstr += "Paid this round: " + str(player.paid_this_round) + "<br>"
                     else:
                         continue
 
@@ -184,7 +176,8 @@ def game_status(gameID):
 @app.route("/api/profile",methods=["GET"])
 @login_required
 def show_profile():
-    retstr:str = current_user.id 
+    account = dataBase.get_player_account(current_user.id)
+    retstr:str = current_user.id + "<br> Stash: " + str(account.stash)
 
     for game in dataBase.get_games(current_user.id):
         
