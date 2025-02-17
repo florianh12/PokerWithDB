@@ -23,6 +23,7 @@ class PokerGame(db.Model):
     round = Column(Integer,default=-1,nullable=False)
     
     participants = relationship('Plays', back_populates='participation')
+    won_by = relationship('WonBy', back_populates='winner_of')
 
 class Player(db.Model):
     __tablename__ = 'player'
@@ -32,6 +33,7 @@ class Player(db.Model):
     stash = Column(Double,default=10.0,nullable=False)
     
     participation = relationship('Plays', back_populates='participants')
+    games_won = relationship('WonBy', back_populates='winning_player')
     
 class Plays(db.Model):
     __tablename__ = 'plays'
@@ -45,3 +47,13 @@ class Plays(db.Model):
     
     participation = relationship('PokerGame', back_populates='participants')
     participants = relationship('Player', back_populates='participation')
+    
+
+class WonBy(db.Model):
+    __tablename__ = 'won_by'
+    
+    gameID = Column(Integer,ForeignKey('PokerGame.gameID'), primary_key=True)
+    username = Column(String(40), ForeignKey('player.username'), primary_key=True)
+
+    winner_of = relationship('PokerGame', back_populates='won_by')
+    winning_player = relationship('Player', back_populates='games_won')

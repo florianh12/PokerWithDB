@@ -2,9 +2,10 @@ from flask_sqlalchemy import SQLAlchemy
 from typing import List
 
 from .DataBase import DataBase
-from models import Card, Player, PokerGame, Plays,db, State
+from models import Card, Player, PokerGame, Plays,db, State, WonBy
 import random
 import bcrypt
+import subprocess
 
 
 class SqlDataBase(DataBase):
@@ -31,6 +32,12 @@ class SqlDataBase(DataBase):
         self.mysqldb.session.commit()
         for player in players:
             self.mysqldb.session.add(Plays(gameID=to_insert_game.gameID,player_username=player,hand1=cards.pop(),hand2=cards.pop()))
+        
+        self.mysqldb.session.commit()
+
+    def create_winner(self, player:Plays) -> None:
+        
+        self.mysqldb.session.add(WonBy(username=player.player_username,gameID=player.gameID))
         
         self.mysqldb.session.commit()
         
@@ -232,8 +239,27 @@ class SqlDataBase(DataBase):
                 game.round += 1
 
             else:
+                
                 #TODO: Implement winning mechanics
+                winning_calculations_command = ["./cpp_evaluation/poker", str(game.table1.value), str(game.table2.value), 
+                                                str(game.table3.value), str(game.table4.value), str(game.table5.value)]
+                for player in players:
+                    winning_calculations_command.append(str(player.hand1.value))
+                    winning_calculations_command.append(str(player.hand2.value))
 
+                result = subprocess.run(winning_calculations_command,check=True, text=True, capture_output=True)
+
+                winners = [int(entry) for entry in result.stdout.split("\n") if entry != '']
+                
+                if len(winners) == 0:
+                    raise RuntimeError("No winners found")
+                
+                for winner in winners:  
+                    self.create_winner(players[winner])                  
+                    players[winner].participants.stash += game.pot/float(len(winners))
+                
+                # set the official winners and clear the pot so that money can't be dublicated
+                game.pot = 0.0     
 
                 # Declare game to be over
                 game.round = -2

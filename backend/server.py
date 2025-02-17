@@ -214,4 +214,11 @@ def show_profile():
     return retstr
 
 if __name__ == "__main__":
+    # compile hand evaluation program(requires g++)
+    compile_command = ["g++", "./cpp_evaluation/Poker2.cpp", "./cpp_evaluation/givescore.cpp","-o", "./cpp_evaluation/poker"]
+    try:
+        subprocess.run(compile_command,check=True)
+    except subprocess.CalledProcessError:
+        print("Compilation unsuccessful")
+        exit(1)
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True, use_reloader=False)

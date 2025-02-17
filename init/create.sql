@@ -44,7 +44,7 @@ CREATE TABLE won_by (
 
 DELIMITER $$
 CREATE TRIGGER block_card_update_game
-BEFORE UPDATE ON game
+BEFORE UPDATE ON PokerGame
 FOR EACH ROW
 BEGIN
     IF NEW.table1 <> OLD.table1 OR NEW.table2 <> OLD.table2 OR
