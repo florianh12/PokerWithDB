@@ -62,7 +62,7 @@ CREATE TRIGGER block_card_update_player
 BEFORE UPDATE ON plays
 FOR EACH ROW
 BEGIN
-    IF NEW.Hand_0 <> OLD.hand1 OR NEW.hand2 <> OLD.hand2 THEN
+    IF NEW.hand1 <> OLD.hand1 OR NEW.hand2 <> OLD.hand2 THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Update of protected columns not allowed';
     END IF;
