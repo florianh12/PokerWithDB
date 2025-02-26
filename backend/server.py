@@ -1,5 +1,5 @@
 #jsonify and json_util only used to visualize mongodb-data on the website for now
-from flask import Flask, jsonify, make_response, request
+from flask import Flask, jsonify, make_response, request, render_template
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 
 from sqlalchemy import Column, Integer, String, ForeignKey, Enum
@@ -10,12 +10,14 @@ import time
 import os
 import re
 import subprocess
+from flask_cors import CORS
 
 from database import *
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static")
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
 app.secret_key = os.urandom(24)
+CORS(app)
 
 lock = False
 login_manager = LoginManager()
@@ -141,37 +143,36 @@ def game_status(gameID):
     game = dataBase.get_game(gameID=gameID)
     if game is None:
         return "Game does not exist"
+
+    game_status = "NOT STARTED" if game.round == -1 else "OVER" if game.round < 0 else "ONGOING"
+    table_cards = []
+    hand_cards = []
+    players = dataBase.get_players(game)
+    usernames = [player.player_username for player in players]
+    
+    if current_user.id in usernames:
+        if game.round > 0:
+            table_cards.append(game.table1.photo_link)
+            table_cards.append(game.table2.photo_link)
+            table_cards.append(game.table3.photo_link)
+        if game.round > 1:
+            table_cards.append(game.table4.photo_link)
+        if game.round > 2:
+            table_cards.append(game.table5.photo_link)
+
+        for player in dataBase.get_players(game):
+            if player.player_username == str(current_user.id):
+                    hand_cards.append(player.hand1.photo_link)
+                    hand_cards.append(player.hand2.photo_link)
+                    return render_template("game.html", game_name=game.name,
+                                            game_status=game_status, game_round=game.round, 
+                                            table_cards=table_cards, hand_cards=hand_cards,
+                                            player_status=player.status.value, 
+                                            paid_this_round=player.paid_this_round)
+        return "Template not properly rendered, probably due to lack of player in players"
     else:
-        retstr:str = f"""Name: {game.name} Status: 
-        {"NOT STARTED" if game.round == -1 else 
-        "OVER" if game.round < 0 else "ONGOING"}<br>"""
-        
-        players = dataBase.get_players(game)
-        usernames = [player.player_username for player in players]
-        
-        if current_user.id in usernames:
-            if game.round > 0:
-                retstr += "<br>Table:<br>&nbsp&nbsp" + CardToClearGerman.translate(game.table1)
-                retstr += "&nbsp&nbsp&nbsp&nbsp" + CardToClearGerman.translate(game.table2)
-                retstr += "&nbsp&nbsp&nbsp&nbsp" + CardToClearGerman.translate(game.table3)
-            if game.round > 1:
-                retstr += "&nbsp&nbsp&nbsp&nbsp" + CardToClearGerman.translate(game.table4)
-            if game.round > 2:
-                retstr += "&nbsp&nbsp&nbsp&nbsp" + CardToClearGerman.translate(game.table5)
-            retstr += "<br><br> Round: " + str(game.round)
-
-            if not game.round < 0:
-                retstr += "<br><br> My Hand: "
-                for player in dataBase.get_players(game):
-                    if player.player_username == str(current_user.id):
-                            retstr += " " + CardToClearGerman.translate(player.hand1)
-                            retstr += "&nbsp&nbsp&nbsp&nbsp" + CardToClearGerman.translate(player.hand2)
-                            retstr += "<br><br> Player-Status: " + player.status.value + "<br>"
-                            retstr += "Paid this round: " + str(player.paid_this_round) + "<br>"
-                    else:
-                        continue
-
-        return retstr
+        return "User does not participate in this game"
+    
 
 @app.route("/api/profile",methods=["GET"])
 @login_required
@@ -212,6 +213,11 @@ def show_profile():
                     continue
 
     return retstr
+
+@app.route("/api/test_page",methods=["GET"])
+def test_page():
+    return render_template('game.html',game_name='test', game_status='status test')
+
 
 if __name__ == "__main__":
     # compile hand evaluation program(requires g++)
